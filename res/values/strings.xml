@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="hello">Hello World, MetaRacingActivity!</string>
+    <string name="app_name">MetaRacing</string>
+    <string name="toggleServiceLabel">Active</string>
+    <string name="gpsStateLabel">GPS</string>
+    <string name="satellitesFoundLabel">Satellites found</string>
+
+</resources>
