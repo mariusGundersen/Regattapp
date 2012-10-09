@@ -29,13 +29,27 @@ public class StatusFragment extends Fragment {
 			public void _(Integer param) {
 				satellitesFoundText.setText(param + "");
 			}
-		}, new Callback<String>() {
-			public void _(String param) {
-				gpsStateText.setText(param);
+		}, new Callback<GpsInformation.State>() {
+			public void _(GpsInformation.State param) {
+				gpsStateText.setText(textFromState(param));
 			}
 		});
 
 		return view;
+	}
+	
+	private String textFromState(GpsInformation.State state){
+		switch(state){
+		case Started:
+			return "GPS started";
+		case Stopped:
+			return "GPS stopped";
+		case Locating:
+			return "GPS locating you";
+		case Located:
+			return "GPS got fix";
+		}
+		return "";
 	}
 	
 }

@@ -14,11 +14,13 @@ import android.util.Log;
 
 public class GpsInformation {
 
+	private LocationManager locationManager;
 	private final Callback<Integer> satelliteCountCallback;
-	private final Callback<String> gpsStateCallback;
+	private final Callback<State> gpsStateCallback;
+	private int previousEvent = -1;
 	private static final String TAG = "GpsInfo";
 
-	public GpsInformation(Context context, Callback<Integer> satelliteCountCallaback, Callback<String> gpsStateCallback) {
+	public GpsInformation(Context context, Callback<Integer> satelliteCountCallaback, Callback<State> gpsStateCallback) {
 		this.satelliteCountCallback = satelliteCountCallaback;
 		this.gpsStateCallback = gpsStateCallback;
 		locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
@@ -27,29 +29,22 @@ public class GpsInformation {
 		locationManager.addGpsStatusListener(gpsListener);
 	}
 	
+	public void stop(){
+		locationManager.removeGpsStatusListener(gpsListener);
+	}
+	
 	GpsStatus.Listener gpsListener = new GpsStatus.Listener(){
 
 		private GpsStatus status;
 
 		@Override
 		public void onGpsStatusChanged(int event) {
-			switch(event){
-			case GpsStatus.GPS_EVENT_FIRST_FIX:
-				gpsStateCallback._("Found location");
-				break;
-			case GpsStatus.GPS_EVENT_SATELLITE_STATUS:
-				gpsStateCallback._("GPS running");
-				break;
-			case GpsStatus.GPS_EVENT_STARTED:
-				gpsStateCallback._("Starting the GPS");
-				break;
-			case GpsStatus.GPS_EVENT_STOPPED:
-				gpsStateCallback._("GPS stopped");
-				break;
-			default:
-				gpsStateCallback._("unknown state");
-				break;
+			
+			if(event != previousEvent){
+				gpsStateCallback._(State.fromGpsStatus(event));
+				previousEvent = event;
 			}
+			
 			if(event == GpsStatus.GPS_EVENT_SATELLITE_STATUS){
 				status = locationManager.getGpsStatus(status);
 				Iterator<GpsSatellite> sats = status.getSatellites().iterator();
@@ -71,6 +66,24 @@ public class GpsInformation {
 		
 	};
 
-	private LocationManager locationManager;
 
+	public enum State {
+		Started, Stopped, Locating, Located;
+
+		public static State fromGpsStatus(int event) {
+			switch (event) {
+			case GpsStatus.GPS_EVENT_STARTED:
+				return Started;
+			case GpsStatus.GPS_EVENT_STOPPED:
+				return Stopped;
+			case GpsStatus.GPS_EVENT_FIRST_FIX:
+				return Located;
+			case GpsStatus.GPS_EVENT_SATELLITE_STATUS:
+				return Locating;
+			default:
+				return Stopped;
+
+			}
+		}
+	}
 }

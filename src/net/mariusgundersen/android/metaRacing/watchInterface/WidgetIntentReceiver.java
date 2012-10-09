@@ -17,16 +17,13 @@ public class WidgetIntentReceiver extends BroadcastReceiver {
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		String action = intent.getAction();
-		if (action != null
-				&& action
-						.equals("org.metawatch.manager.REFRESH_WIDGET_REQUEST")) {
+		if (action != null && action.equals("org.metawatch.manager.REFRESH_WIDGET_REQUEST")) {
 
 			Log.d(TAG, "Received intent");
 
 			Bundle bundle = intent.getExtras();
 
-			boolean getPreviews = bundle
-					.containsKey("org.metawatch.manager.get_previews");
+			boolean getPreviews = bundle.containsKey("org.metawatch.manager.get_previews");
 			if (getPreviews)
 				Log.d(TAG, "get_previews");
 
@@ -49,7 +46,7 @@ public class WidgetIntentReceiver extends BroadcastReceiver {
 			// Always send an update if the broadcast specifies get_previews
 			if(getPreviews || widgets_desired.contains(CurrentDataWidget.ID)){
 				
-				new CurrentDataWidget(context).genWidgetPaused();
+				new CurrentDataWidget(context).genWidgetCentered("On Land");
 				
 			}
 			if(getPreviews || widgets_desired.contains(MaxMinWidget.ID)){

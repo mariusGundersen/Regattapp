@@ -47,14 +47,9 @@ public class CurrentDataWidget extends Widget{
 	}
 
 	public synchronized void genWidget(String text) {
-		Log.d(TAG, "genWidget() start");
-
 		renderer.clearCanvas(widgetCanvas);
 		renderer.renderTextToCanvas(text, widgetCanvas);
-
 		sendWidget(ID, DESC, PRIORITY);
-
-		Log.d(TAG, "genWidget() end");
 	}
 
 	
@@ -65,17 +60,11 @@ public class CurrentDataWidget extends Widget{
 			return decTwoDigits.format(v);
 		}
 	}
+	
 
-	public void genWidgetRacing() {
+	public void genWidgetCentered(String text) {
 		renderer.clearCanvas(widgetCanvas);
-		renderer.renderTextToCanvas("Starting Race", widgetCanvas, new Rect(WIDTH/2, HEIGHT-4, WIDTH-8, HEIGHT-56), Paint.Align.CENTER);
+		renderer.renderTextToCanvas(text, widgetCanvas, new Rect(WIDTH/2, HEIGHT-4, WIDTH-8, HEIGHT-56), Paint.Align.CENTER);
 		sendWidget(ID, DESC, PRIORITY);
-	}
-
-	public void genWidgetPaused() {
-		renderer.clearCanvas(widgetCanvas);
-		renderer.renderTextToCanvas("On Land", widgetCanvas, new Rect(WIDTH/2, HEIGHT-4, WIDTH-8, HEIGHT-56), Paint.Align.CENTER);
-		sendWidget(ID, DESC, PRIORITY);
-		
 	}
 }

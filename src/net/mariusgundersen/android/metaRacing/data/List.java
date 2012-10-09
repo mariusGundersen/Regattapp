@@ -23,6 +23,14 @@ public class List<T extends Object> {
 		return list[wrapIndex(index + at)];
 	}
 	
+	public int size(){
+		return size;
+	}
+	
+	public boolean isFull(){
+		return size == list.length;
+	}
+	
 	private int wrapIndex(int index){
 		while(index >= size) index -= size;
 		while(index < 0) index += size;

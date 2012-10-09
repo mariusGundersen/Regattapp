@@ -1,16 +1,24 @@
 package net.mariusgundersen.android.metaRacing;
 
+import net.mariusgundersen.android.metaRacing.application.RunningAverageBearing;
+import net.mariusgundersen.android.metaRacing.application.RunningAverageSpeed;
+import net.mariusgundersen.android.metaRacing.data.Delta;
+import net.mariusgundersen.android.metaRacing.data.GpsInformation;
 import net.mariusgundersen.android.metaRacing.data.Point;
 import net.mariusgundersen.android.metaRacing.data.RecentRoute;
+import net.mariusgundersen.android.metaRacing.data.RunningAverage;
 import net.mariusgundersen.android.metaRacing.watchInterface.BitmapUtil;
 import net.mariusgundersen.android.metaRacing.watchInterface.CurrentDataWidget;
 import net.mariusgundersen.android.metaRacing.watchInterface.MaxMinWidget;
 import net.mariusgundersen.android.metaRacing.watchInterface.NotificationRenderer;
+import net.mariusgundersen.useful.Callback;
+import net.mariusgundersen.useful.Lambda;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -33,6 +41,7 @@ public class MetaRacingService extends Service {
 	private LocationManager locationManager;
 	private MaxMinWidget maxMinWidget;
 	private CurrentDataWidget currentDataWidget;
+	private GpsInformation gpsInformation;
 
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -52,10 +61,8 @@ public class MetaRacingService extends Service {
 		}
 		Log.d(TAG, "start service");
 
-		// Register the listener with the Location Manager to receive location
-		// updates
-		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0,
-				0, locationListener);
+		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+		gpsInformation = new GpsInformation(getApplicationContext(), satelliteCountChanged, gpsStateChanged);
 		startRacing();
 		createNotification();
 
@@ -66,60 +73,70 @@ public class MetaRacingService extends Service {
 	public void onDestroy() {
 		Log.d(TAG, "stop service");
 		locationManager.removeUpdates(locationListener);
+		gpsInformation.stop();
 
 		stopRacing();
 		removeNotification();
 		super.onDestroy();
 	}
 
-	// Define a listener that responds to location updates
+	protected boolean gotFix = false;
+
+	private Callback<GpsInformation.State> gpsStateChanged = new Callback<GpsInformation.State>() {public void _(GpsInformation.State param) {
+		if(param != GpsInformation.State.Locating){
+			gotFix = false;
+		}
+	}};
+	
+	private Callback<Integer> satelliteCountChanged = new Callback<Integer>() {public void _(Integer param){
+		gotFix = param >= 4;
+		if(gotFix == false){
+			currentDataWidget.genWidgetCentered(param + (param == 1 ? " satellite" : " satellites"));
+		}
+	}};
+
 	LocationListener locationListener = new LocationListener() {
 		public void onLocationChanged(Location location) {
-			// Called when a new location is found by the network location
-			// provider.
-			findSpeedAndBearing(location);
+			if(gotFix)
+				findSpeedAndBearing(location);
 		}
 
-		public void onProviderEnabled(String provider) {
-		}
-
-		public void onProviderDisabled(String provider) {
-		}
-
-		public void onStatusChanged(String provider, int status, Bundle extras) {
-
-			String statusString = status == LocationProvider.AVAILABLE ? "available"
-					: status == LocationProvider.OUT_OF_SERVICE ? "out of service"
-							: status == LocationProvider.TEMPORARILY_UNAVAILABLE ? "temporary unavailable"
-									: "";
-			Log.d(TAG,
-					provider + " " + statusString + " ("
-							+ extras.getInt("satellites") + ")");
-			currentDataWidget.genWidget(provider + statusString);
-		}
+		public void onProviderEnabled(String provider) {}
+		public void onProviderDisabled(String provider) {}
+		public void onStatusChanged(String provider, int status, Bundle extras) {}
 	};
+	
 	private Notification notification;
 	private RecentRoute route = new RecentRoute();
 	private Point prevPoint;
+	private long lastTick = 0;
+	private RunningAverageSpeed avgSpeed = new RunningAverageSpeed(10);
+	private RunningAverageBearing avgBearing = new RunningAverageBearing(10);
 
 	private void findSpeedAndBearing(Location location) {
 		Point point = new Point(location);
 		route.addPoint(point);
+		if(prevPoint != null){
+			Delta delta = new Delta(prevPoint, point);
+			avgSpeed.eventOccured(delta);
+			avgBearing.eventOccured(delta);
+		}
+		prevPoint = point;
 		// float vmg = location.bearingTo(dest)
 
-		
-		if (prevPoint == null || point.getTime() - prevPoint.getTime() >= TICK_DURATION) {
+		long tick = System.currentTimeMillis();
+		if (tick - lastTick >= TICK_DURATION) {
 			double spd = 0.0;
 			double brg = 0.0;
-			if(prevPoint != null){
-				spd = prevPoint.speedTo(point);
-				brg = prevPoint.bearingTo(point);
+			if(lastTick != 0){
+				spd = avgSpeed.average()*TO_KNOTS;
+				brg = avgBearing.average();
 				if (spd > maxSpeed) {
 					maxSpeed = spd;
 					maxMinWidget.genWidget(maxSpeed);
 				}
 			}
-			prevPoint = point;
+			lastTick = tick;
 
 			// sendApplicationText(text);
 			currentDataWidget.genWidget(brg, spd);
@@ -129,12 +146,12 @@ public class MetaRacingService extends Service {
 	private void startRacing() {
 		maxSpeed = 0;
 		maxMinWidget.genWidget(maxSpeed);
-		currentDataWidget.genWidgetRacing();
+		currentDataWidget.genWidgetCentered("Starting Race");
 		// startApp();
 	}
 
 	private void stopRacing() {
-		currentDataWidget.genWidgetPaused();
+		currentDataWidget.genWidgetCentered("On Land");
 		// stopApp();
 	}
 
@@ -159,32 +176,5 @@ public class MetaRacingService extends Service {
 		stopForeground(true);
 	}
 
-	private void sendApplicationText(String text) {
-
-		Intent broadcast = new Intent(
-				"org.metawatch.manager.APPLICATION_UPDATE");
-		Bundle b = new Bundle();
-
-		byte[] image = BitmapUtil.bitmapToBuffer(new NotificationRenderer(
-				getBaseContext()).renderText(text));
-
-		b.putByteArray("buffer", image);
-
-		broadcast.putExtras(b);
-
-		this.sendBroadcast(broadcast);
-	}
-
-	private void startApp() {
-		Intent broadcast = new Intent("org.metawatch.manager.APPLICATION_START");
-		this.sendBroadcast(broadcast);
-
-	}
-
-	private void stopApp() {
-
-		Intent broadcast = new Intent("org.metawatch.manager.APPLICATION_STOP");
-		this.sendBroadcast(broadcast);
-	}
 
 }

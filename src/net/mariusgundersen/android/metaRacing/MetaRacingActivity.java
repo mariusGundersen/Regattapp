@@ -19,14 +19,16 @@ import android.widget.Switch;
 public class MetaRacingActivity extends Activity {
 
 
+	private static final String SELECTED_TAB = "SELECTED_TAB";
+	private ActionBar actionbar;
+
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
-		// ActionBar gets initiated
-		ActionBar actionbar = getActionBar();
+		actionbar = getActionBar();
 		// Tell the ActionBar we want to use Tabs.
 		actionbar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
 		// initiating both tabs and set text to it.
@@ -58,6 +60,21 @@ public class MetaRacingActivity extends Activity {
 
 		int change = actionbar.getDisplayOptions() ^ ActionBar.DISPLAY_SHOW_CUSTOM;
 		actionbar.setDisplayOptions(change, ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_USE_LOGO);
+		
+	}
+	
+	@Override
+	protected void onSaveInstanceState(Bundle outState) {
+		super.onSaveInstanceState(outState);
+		
+		outState.putInt(SELECTED_TAB, actionbar.getSelectedTab().getPosition());
+	}
+	
+	@Override
+	protected void onRestoreInstanceState(Bundle savedInstanceState) {
+		super.onRestoreInstanceState(savedInstanceState);
+		
+		actionbar.selectTab(actionbar.getTabAt(savedInstanceState.getInt(SELECTED_TAB)));
 	}
 	
 

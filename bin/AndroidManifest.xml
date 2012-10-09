@@ -35,6 +35,12 @@
                 <action android:name="org.metawatch.manager.REFRESH_WIDGET_REQUEST" />
             </intent-filter>
         </receiver>
+        
+        <receiver android:name=".MetaRacingActivity" >
+            <intent-filter>
+                <action android:name="org.metawatch.manager.APPLICATION_UPDATE" />
+            </intent-filter>
+        </receiver>
 
         <service
             android:name=".MetaRacingService"
