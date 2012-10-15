@@ -15,6 +15,7 @@ import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Switch;
@@ -31,6 +32,8 @@ public class RegattAppActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
+		Log.d("MainActivity", "onCreate");
+		
 		actionbar = getActionBar();
 		// Tell the ActionBar we want to use Tabs.
 		actionbar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);

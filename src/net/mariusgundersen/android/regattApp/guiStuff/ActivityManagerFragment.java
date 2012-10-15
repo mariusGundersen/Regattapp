@@ -20,8 +20,7 @@ public abstract class ActivityManagerFragment extends LocalActivityManagerFragme
 			Bundle savedInstanceState) {
 		Intent intent = new Intent(getActivity(), getActivityClass());
 
-		final Window w = getLocalActivityManager().startActivity(ACTIVITY_TAG,
-				intent);
+		final Window w = getLocalActivityManager().startActivity(ACTIVITY_TAG,intent);
 		final View wd = w != null ? w.getDecorView() : null;
 
 		if (wd != null) {
